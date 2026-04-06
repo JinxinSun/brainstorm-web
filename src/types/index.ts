@@ -21,6 +21,15 @@ export interface ChatMessage {
   timestamp: number;
 }
 
+export type QuestionType = "single_select" | "multi_select" | "open_input";
+
+export interface StructuredQuestion {
+  type: QuestionType;
+  text: string;
+  options: string[];
+  allowCustom: boolean;
+}
+
 export interface SSEEvent {
   type: "text" | "html" | "stage" | "done" | "error";
   content?: string;

@@ -2,13 +2,15 @@
 
 import { useMemo } from "react";
 import { marked } from "marked";
+import DOMPurify from "dompurify";
 import type { ChatMessage } from "@/types";
 import { cn } from "@/lib/utils";
 import { ChoiceCards } from "./choice-cards";
+import { extractStructuredQuestion } from "@/lib/chat-questions";
 
 interface MessageBubbleProps {
   message: ChatMessage;
-  onChoiceSelect?: (choice: string) => void;
+  onChoiceSelect?: (response: string) => void;
 }
 
 // Extract choice options from AI message: lines like "A. xxx" or "A、xxx"
@@ -35,14 +37,21 @@ function extractChoices(content: string): { text: string; choices: string[] } {
 export function MessageBubble({ message, onChoiceSelect }: MessageBubbleProps) {
   const isUser = message.role === "user";
 
-  const { text, choices } = useMemo(() => {
+  const { text, choices, question } = useMemo(() => {
     if (isUser) return { text: message.content, choices: [] };
-    return extractChoices(message.content);
+    const structured = extractStructuredQuestion(message.content);
+    const fallback = extractChoices(structured.text);
+    return {
+      text: fallback.text,
+      choices: fallback.choices,
+      question: structured.question,
+    };
   }, [message.content, isUser]);
 
   const html = useMemo(() => {
     if (isUser) return null;
-    return marked.parse(text, { async: false }) as string;
+    const parsed = marked.parse(text, { async: false }) as string;
+    return DOMPurify.sanitize(parsed);
   }, [text, isUser]);
 
   return (
@@ -76,8 +85,19 @@ export function MessageBubble({ message, onChoiceSelect }: MessageBubbleProps) {
           ))}
         </div>
       )}
-      {choices.length > 0 && onChoiceSelect && (
-        <ChoiceCards choices={choices} onSelect={onChoiceSelect} />
+      {question && onChoiceSelect && (
+        <ChoiceCards question={question} onSubmit={onChoiceSelect} />
+      )}
+      {!question && choices.length > 0 && onChoiceSelect && (
+        <ChoiceCards
+          question={{
+            type: "single_select",
+            text: "请选择一个更接近你的方向：",
+            options: choices.map((choice) => choice.replace(/^([A-D])[.、．]\s*/, "")),
+            allowCustom: true,
+          }}
+          onSubmit={onChoiceSelect}
+        />
       )}
     </div>
   );
