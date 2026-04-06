@@ -8,7 +8,7 @@ interface SplitPanelProps {
 }
 
 export function SplitPanel({ left, right }: SplitPanelProps) {
-  const [leftWidth, setLeftWidth] = useState(45);
+  const [leftWidth, setLeftWidth] = useState(28);
   const dragging = useRef(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -21,7 +21,7 @@ export function SplitPanel({ left, right }: SplitPanelProps) {
       if (!dragging.current || !containerRef.current) return;
       const rect = containerRef.current.getBoundingClientRect();
       const pct = ((e.clientX - rect.left) / rect.width) * 100;
-      setLeftWidth(Math.min(Math.max(pct, 25), 75));
+      setLeftWidth(Math.min(Math.max(pct, 25), 50));
     };
 
     const onMouseUp = () => {
