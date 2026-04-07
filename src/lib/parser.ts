@@ -1,9 +1,11 @@
-const STAGE_NAMES = ["了解背景", "澄清需求", "生成方案", "确认细节", "输出结果"];
+import type { Stage, STAGES } from "@/types";
 
 export interface ParsedChunk {
   type: "text" | "html" | "stage";
   content: string;
 }
+
+const STAGE_NAMES: string[] = ["了解背景", "澄清需求", "生成方案", "确认细节", "输出结果"];
 
 /**
  * Streaming parser that separates AI output into text, HTML prototype, and stage markers.
@@ -28,6 +30,7 @@ export class StreamParser {
       if (this.inHtml) {
         // Look for closing :::
         const closeIdx = this.buffer.indexOf("\n:::\n");
+        const closeIdxEnd = this.buffer.indexOf("\n:::"); // also handle end of stream
 
         if (closeIdx !== -1) {
           this.htmlBuffer += this.buffer.slice(0, closeIdx);
@@ -86,7 +89,25 @@ export class StreamParser {
       }
 
       // Check if buffer might contain a partial marker at the end
-      if (this.hasPartialMarker()) {
+      if (
+        this.buffer.endsWith(":") ||
+        this.buffer.endsWith("::") ||
+        this.buffer.endsWith(":::") ||
+        this.buffer.endsWith(":::p") ||
+        this.buffer.endsWith(":::pr") ||
+        this.buffer.endsWith(":::pro") ||
+        this.buffer.endsWith(":::prot") ||
+        this.buffer.endsWith(":::proto") ||
+        this.buffer.endsWith(":::protot") ||
+        this.buffer.endsWith(":::prototy") ||
+        this.buffer.endsWith(":::prototyp") ||
+        this.buffer.endsWith(":::prototype") ||
+        this.buffer.endsWith(":::s") ||
+        this.buffer.endsWith(":::st") ||
+        this.buffer.endsWith(":::sta") ||
+        this.buffer.endsWith(":::stag") ||
+        this.buffer.endsWith(":::stage")
+      ) {
         // Could be a partial marker, hold back the potential marker part
         const colonIdx = this.buffer.lastIndexOf(":::");
         if (colonIdx > 0) {
@@ -108,40 +129,6 @@ export class StreamParser {
     }
 
     return results;
-  }
-
-  private hasPartialMarker(): boolean {
-    const partialMarkers = [
-      ":",
-      "::",
-      ":::",
-      ":::p",
-      ":::pr",
-      ":::pro",
-      ":::prot",
-      ":::proto",
-      ":::protot",
-      ":::prototy",
-      ":::prototyp",
-      ":::prototype",
-      ":::prototype\n",
-      ":::s",
-      ":::st",
-      ":::sta",
-      ":::stag",
-      ":::stage",
-      ":::stage:",
-    ];
-
-    if (partialMarkers.some((marker) => this.buffer.endsWith(marker))) {
-      return true;
-    }
-
-    return STAGE_NAMES.some((stage) =>
-      Array.from({ length: stage.length }, (_, i) => `:::stage:${stage.slice(0, i + 1)}`).some(
-        (marker) => this.buffer.endsWith(marker)
-      )
-    );
   }
 
   /**

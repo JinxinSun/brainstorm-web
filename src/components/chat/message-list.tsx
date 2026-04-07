@@ -4,8 +4,7 @@ import { useEffect, useRef, useMemo } from "react";
 import { useSessionStore } from "@/store/session-store";
 import { MessageBubble } from "./message-bubble";
 import { marked } from "marked";
-import DOMPurify from "dompurify";
-import { extractStructuredQuestion } from "@/lib/chat-questions";
+import { cn } from "@/lib/utils";
 
 interface MessageListProps {
   onChoiceSelect: (choice: string) => void;
@@ -23,8 +22,7 @@ export function MessageList({ onChoiceSelect }: MessageListProps) {
 
   const streamingHtml = useMemo(() => {
     if (!streamingText) return "";
-    const { text } = extractStructuredQuestion(streamingText);
-    return DOMPurify.sanitize(marked.parse(text, { async: false }) as string);
+    return marked.parse(streamingText, { async: false }) as string;
   }, [streamingText]);
 
   return (

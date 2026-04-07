@@ -2,15 +2,13 @@
 
 import { useMemo } from "react";
 import { marked } from "marked";
-import DOMPurify from "dompurify";
 import type { ChatMessage } from "@/types";
 import { cn } from "@/lib/utils";
 import { ChoiceCards } from "./choice-cards";
-import { extractStructuredQuestion } from "@/lib/chat-questions";
 
 interface MessageBubbleProps {
   message: ChatMessage;
-  onChoiceSelect?: (response: string) => void;
+  onChoiceSelect?: (choice: string) => void;
 }
 
 // Extract choice options from AI message: lines like "A. xxx" or "A、xxx"
@@ -37,21 +35,14 @@ function extractChoices(content: string): { text: string; choices: string[] } {
 export function MessageBubble({ message, onChoiceSelect }: MessageBubbleProps) {
   const isUser = message.role === "user";
 
-  const { text, choices, question } = useMemo(() => {
+  const { text, choices } = useMemo(() => {
     if (isUser) return { text: message.content, choices: [] };
-    const structured = extractStructuredQuestion(message.content);
-    const fallback = extractChoices(structured.text);
-    return {
-      text: fallback.text,
-      choices: fallback.choices,
-      question: structured.question,
-    };
+    return extractChoices(message.content);
   }, [message.content, isUser]);
 
   const html = useMemo(() => {
     if (isUser) return null;
-    const parsed = marked.parse(text, { async: false }) as string;
-    return DOMPurify.sanitize(parsed);
+    return marked.parse(text, { async: false }) as string;
   }, [text, isUser]);
 
   return (
@@ -85,19 +76,8 @@ export function MessageBubble({ message, onChoiceSelect }: MessageBubbleProps) {
           ))}
         </div>
       )}
-      {question && onChoiceSelect && (
-        <ChoiceCards question={question} onSubmit={onChoiceSelect} />
-      )}
-      {!question && choices.length > 0 && onChoiceSelect && (
-        <ChoiceCards
-          question={{
-            type: "single_select",
-            text: "请选择一个更接近你的方向：",
-            options: choices.map((choice) => choice.replace(/^([A-D])[.、．]\s*/, "")),
-            allowCustom: true,
-          }}
-          onSubmit={onChoiceSelect}
-        />
+      {choices.length > 0 && onChoiceSelect && (
+        <ChoiceCards choices={choices} onSelect={onChoiceSelect} />
       )}
     </div>
   );
